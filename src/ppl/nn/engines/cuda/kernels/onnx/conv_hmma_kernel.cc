@@ -22,6 +22,10 @@
 
 namespace ppl { namespace nn { namespace cuda {
 
+ConvHmmaKernel::~ConvHmmaKernel() {
+    GetCudaDevice()->FreeTmpBuffer(&weight_desc_);
+}
+
 ppl::common::RetCode ConvHmmaKernel::BeforeExecute(KernelExecContext* ctx) {
     auto status = Reshape(ctx);
     if (status != ppl::common::RC_SUCCESS) {
@@ -65,6 +69,29 @@ ppl::common::RetCode ConvHmmaKernel::BeforeExecute(KernelExecContext* ctx) {
     return ppl::common::RC_SUCCESS;
 }
 
+ppl::common::RetCode ConvHmmaKernel::UpdateWeight(KernelExecContext* ctx, void* data, bool on_device) {
+    const TensorShape& shape_in1 = *ctx->GetInput<TensorImpl>(1)->GetShape();
+    TensorShape src_shape = shape_in1;
+    src_shape.SetDataType(ppl::common::DATATYPE_FLOAT32);
+    src_shape.SetDataFormat(ppl::common::DATAFORMAT_NDARRAY);
+    src_shape.CalcPadding();
+    int data_size = shape_in1.CalcBytesIncludingPadding();
+    auto status = GetCudaDevice()->Realloc(data_size, &weight_desc_);
+    if (status != ppl::common::RC_SUCCESS) {
+        LOG(ERROR) << "alloc tmp buffer size[" << data_size << "] for kernel[" << GetName()
+                   << "] failed: " << ppl::common::GetRetCodeStr(status);
+        return status;
+    }
+    if (on_device) {
+        BufferDesc src_desc(data);
+        status = GetCudaDevice()->GetDataConverter()->Convert(&weight_desc_, shape_in1, src_desc, src_shape);
+    } else {
+        status = GetCudaDevice()->GetDataConverter()->ConvertFromHost(&weight_desc_, shape_in1, data, src_shape);
+    }
+    whether_update_weight_ = true;
+    return status;
+}
+
 ppl::common::RetCode ConvHmmaKernel::DoExecute(KernelExecContext* ctx) {
     conv_param_t temp_conv_param;
     fuse_param_t temp_fuse_param;
@@ -98,7 +125,7 @@ ppl::common::RetCode ConvHmmaKernel::DoExecute(KernelExecContext* ctx) {
     // convert filter only if the filter tensor is an output of another kernel
     BufferDesc weight_buffer;
     auto newshape = shape_in1;
-    if (!param_->extra_param.is_initializer_weight) {
+    if (!param_->extra_param.is_initializer_weight || whether_update_weight_) {
         auto align_size = 8;
         newshape.SetPadding1(0, (newshape.GetDim(0) + align_size - 1) / align_size * align_size - newshape.GetDim(0));
 
@@ -110,7 +137,9 @@ ppl::common::RetCode ConvHmmaKernel::DoExecute(KernelExecContext* ctx) {
         auto stream = GetStream();
         conv_param_t temp_conv_param;
         ConvertToForwardConvParam(shape_in0, shape_in1, shape_out, *param_, temp_conv_param);
-        PPLCUDAConvolutionCvtFlt(stream, weight_buffer.addr, ctx->GetInput<TensorImpl>(1)->GetBufferPtr(), shape_in0.GetDataType(), temp_conv_param);
+        void* src_data_ptr = whether_update_weight_ ? weight_buffer.addr : ctx->GetInput<TensorImpl>(1)->GetBufferPtr();
+        whether_update_weight_ = false;
+        PPLCUDAConvolutionCvtFlt(stream, weight_buffer.addr, src_data_ptr, shape_in0.GetDataType(), temp_conv_param);
     }
     ppl::common::Destructor __tmp_buffer_guard__([this, &weight_buffer]() -> void {
         GetCudaDevice()->Free(&weight_buffer);

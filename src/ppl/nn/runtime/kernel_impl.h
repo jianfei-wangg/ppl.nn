@@ -61,6 +61,14 @@ public:
         return eng_ctx_;
     }
 
+    /**
+       @brief update kernel's weight.
+       @param ctx contexts needed during update
+    */
+    virtual ppl::common::RetCode UpdateWeight(KernelExecContext* ctx, void* data_ptr, bool on_device) {
+        return ppl::common::RC_SUCCESS;
+    }
+
     /** @brief infer output shapes '*/
     virtual ppl::common::RetCode Reshape(InputOutputInfo*) const = 0;
 

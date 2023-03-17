@@ -31,6 +31,7 @@ public:
     ppl::common::RetCode Init(const Options&) override;
     ppl::common::RetCode ForEach(const std::function<ppl::common::RetCode(KernelImpl*, KernelExecContext*)>&) override;
     ppl::common::RetCode Run(Profiler*) override;
+    ppl::common::RetCode UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) override;
 
 private:
     ppl::common::RetCode DoForEach(const std::function<ppl::common::RetCode(KernelImpl*, KernelExecContext*)>&,

@@ -186,6 +186,26 @@ RetCode SequentialScheduler::Run(Profiler* profiler) {
         profiler);
 }
 
+RetCode SequentialScheduler::UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) {
+    for (auto iter = names_datus.begin(); iter != names_datus.end(); ++iter) {
+        auto node = topo_->GetNode(iter->first);
+        if (node) {
+            // set kernel context
+            KernelExecContext ctx;
+            ctx.SetNode(node);
+            // through kernel to update weight
+            auto kernel = nodeid2kernel_->at(node->GetId()).get();
+            auto status = kernel->UpdateWeight(&ctx, iter->second, on_device);
+            if (status != RC_SUCCESS) {
+                LOG(ERROR) << "Update Weights failed: " << GetRetCodeStr(status);
+            }
+        } else {
+            return RC_INVALID_VALUE;
+        }
+    }
+    return RC_SUCCESS;
+}
+
 RetCode SequentialScheduler::ForEach(const std::function<ppl::common::RetCode(KernelImpl*, KernelExecContext*)>& f) {
     return DoForEach(f, nullptr);
 }

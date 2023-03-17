@@ -25,6 +25,8 @@
 #include "ppl/nn/runtime/partition_runner.h"
 #include "ppl/nn/runtime/profiling_statistics.h"
 
+#include <map>
+
 namespace ppl { namespace nn {
 
 /**
@@ -49,6 +51,12 @@ public:
        @param idx should be less than `GetInputCount()`.
     */
     virtual Tensor* GetInputTensor(uint32_t idx) const = 0;
+
+     /**
+       @brief update the weights of specific nodes.
+       @param datus size must be equal to node weights size in ndarray float format
+    */
+    virtual ppl::common::RetCode UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) = 0;
 
     /**
        @brief run the model with given inputs.

@@ -42,6 +42,7 @@ public:
     virtual ppl::common::RetCode ForEach(
         const std::function<ppl::common::RetCode(KernelImpl*, KernelExecContext*)>&) = 0;
     virtual ppl::common::RetCode Run(Profiler*) = 0;
+    virtual ppl::common::RetCode UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) = 0;
 };
 
 }} // namespace ppl::nn

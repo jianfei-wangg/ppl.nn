@@ -337,6 +337,16 @@ RetCode RuntimeImpl::Run() {
     return Sync();
 }
 
+RetCode RuntimeImpl::UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) {
+
+    auto status = sched_->UpdateWeights(names_datus, on_device);
+    if (status != RC_SUCCESS) {
+        LOG(ERROR) << "Update Weights failed: " << GetRetCodeStr(status);
+        return status;
+    }
+    return RC_SUCCESS;
+}
+
 RetCode RuntimeImpl::GetProfilingStatistics(ProfilingStatistics* stat) const {
 #ifdef PPLNN_ENABLE_KERNEL_PROFILING
     return profiler_->GetProfilingStatistics(stat);

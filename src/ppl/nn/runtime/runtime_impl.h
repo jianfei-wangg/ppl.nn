@@ -83,6 +83,8 @@ public:
 
     ppl::common::RetCode Run() override;
 
+    ppl::common::RetCode UpdateWeights(const std::map<std::string, void*>& names_datus, bool on_device) override;
+
     uint32_t GetDeviceContextCount() const override {
         return engctx_.size();
     }

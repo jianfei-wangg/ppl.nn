@@ -28,10 +28,13 @@ namespace ppl { namespace nn { namespace cuda {
 class ConvHmmaKernel : public CudaKernel {
 public:
     ConvHmmaKernel(const ir::Node* node) : CudaKernel(node) {}
+    ~ConvHmmaKernel();
 
     void SetParam(const CudaConvParam* p) {
         param_ = p;
     }
+
+    ppl::common::RetCode UpdateWeight(KernelExecContext* ctx, void* data, bool on_device) override;
 
 private:
     ppl::common::RetCode BeforeExecute(KernelExecContext*) override;
@@ -39,6 +42,8 @@ private:
 
 private:
     const CudaConvParam* param_ = nullptr;
+    BufferDesc weight_desc_;
+    bool whether_update_weight_ = false;
     // ConvFuse fuse_params_;
     // BufferDesc cvt_filter_;
     // BufferDesc bias_;
