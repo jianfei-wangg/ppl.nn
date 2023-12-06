@@ -176,7 +176,7 @@ bool CudaKernel::CanDoExecute(const KernelExecContext& ctx) const {
     for (uint32_t i = 0; i < ctx.GetInputCount(); ++i) {
         auto tensor = ctx.GetInput<TensorImpl>(i);
         if (!tensor || tensor->GetShape()->CalcBytesIncludingPadding() == 0) {
-            LOG(WARNING) << "Cannot execute [" << GetName() << "]";
+            // LOG(WARNING) << "Cannot execute [" << GetName() << "]";
             if(!tensor) {
                 LOG(DEBUG) << "Tensor(" << i << ") is NULL";
             } else {
